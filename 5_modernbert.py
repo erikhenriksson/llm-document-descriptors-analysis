@@ -1,9 +1,18 @@
 import json
 import os
 
-# Set cache to local directory
+# Set ALL cache directories to local
 os.environ["TRANSFORMERS_CACHE"] = "./model_cache"
 os.environ["HF_HOME"] = "./model_cache"
+os.environ["TRITON_CACHE_DIR"] = "./triton_cache"
+os.environ["TORCH_HOME"] = "./torch_cache"
+os.environ["XDG_CACHE_HOME"] = "./cache"
+
+# Create cache directories
+os.makedirs("./model_cache", exist_ok=True)
+os.makedirs("./triton_cache", exist_ok=True)
+os.makedirs("./torch_cache", exist_ok=True)
+os.makedirs("./cache", exist_ok=True)
 
 import torch
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
