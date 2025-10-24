@@ -55,7 +55,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
 
 # Train logistic regression
-model = LogisticRegression(max_iter=1000, random_state=42)
+model = LogisticRegression(max_iter=1000, random_state=42, penalty="l2")
 model.fit(X_train, y_train)
 
 # Predictions
