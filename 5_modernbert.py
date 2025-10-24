@@ -1,4 +1,9 @@
 import json
+import os
+
+# Set cache to local directory
+os.environ["TRANSFORMERS_CACHE"] = "./model_cache"
+os.environ["HF_HOME"] = "./model_cache"
 
 import torch
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
