@@ -17,13 +17,13 @@ with open("processed/bbc_harmonized_with_labels_threshold_1.jsonl", "r") as f:
     for line in f:
         doc = json.loads(line)
         # Skip if no text
-        if "text" in doc and doc["text"].strip():
+        if "document" in doc and doc["document"].strip():
             documents.append(doc)
 
 print(f"Loaded {len(documents)} documents with text")
 
 # Extract text and labels
-texts = [doc["text"] for doc in documents]
+texts = [doc["document"] for doc in documents]
 labels = [doc["label_text"] for doc in documents]
 
 # Create label mapping
