@@ -1,0 +1,27 @@
+name: imdb_sentiment
+
+data:
+  path: data/descriptors_imdb_harmonized_labelled.jsonl
+  text_field: document
+  label_field: label
+  # Map original labels to integers if needed
+  # label_map:
+  #   "negative": 0
+  #   "positive": 1
+  label_names:
+    - negative
+    - positive
+  test_size: 0.1
+  dev_size: 0.1
+
+model:
+  name: microsoft/deberta-v3-base
+  max_length: 512
+
+training:
+  output_dir: ./models/imdb_sentiment
+  learning_rate: 2.0e-5
+  batch_size: 16
+  epochs: 3
+  weight_decay: 0.01
+  seed: 42
