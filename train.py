@@ -44,6 +44,7 @@ def prepare_dataset(
     text_field: str,
     label_field: str,
     label_map: dict | None,
+    label_names: list[str],
     test_size: float,
     dev_size: float,
     seed: int,
@@ -51,6 +52,8 @@ def prepare_dataset(
     """
     Create train/dev/test splits.
     """
+    from datasets import ClassLabel, Features, Value
+
     # Extract text and labels
     texts = [item[text_field] for item in data]
     labels = [item[label_field] for item in data]
@@ -59,8 +62,17 @@ def prepare_dataset(
     if label_map:
         labels = [label_map[str(label)] for label in labels]
 
-    # Create HuggingFace Dataset
-    ds = Dataset.from_dict({"text": texts, "label": labels})
+    # Ensure labels are plain ints
+    labels = [int(label) for label in labels]
+
+    # Create HuggingFace Dataset with explicit ClassLabel type
+    features = Features(
+        {
+            "text": Value("string"),
+            "label": ClassLabel(names=label_names),
+        }
+    )
+    ds = Dataset.from_dict({"text": texts, "label": labels}, features=features)
 
     # First split: separate test set
     ds_split = ds.train_test_split(
@@ -144,6 +156,7 @@ def main(config_path: str):
         text_field=data_config["text_field"],
         label_field=data_config["label_field"],
         label_map=label_map,
+        label_names=label_names,
         test_size=data_config.get("test_size", 0.1),
         dev_size=data_config.get("dev_size", 0.1),
         seed=training_config.get("seed", 42),
