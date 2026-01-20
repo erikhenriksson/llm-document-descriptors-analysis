@@ -1,9 +1,6 @@
 """
-Apply trained classifier to new data and analyze confidence distribution.
-Use this to:
-1. Pseudo-label FineWeb with a trained model
-2. Investigate confidence distributions
-3. Determine thresholds for filtering
+Analyze predictions from predict.py.
+Run this on the output JSONL to investigate confidence distributions and thresholds.
 """
 
 import argparse
@@ -12,10 +9,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
-import yaml
-from tqdm import tqdm
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 def load_jsonl(path: str) -> list[dict]:
@@ -27,75 +20,21 @@ def load_jsonl(path: str) -> list[dict]:
     return data
 
 
-def save_jsonl(data: list[dict], path: str):
-    """Save to JSONL file."""
-    with open(path, "w") as f:
-        for item in data:
-            f.write(json.dumps(item) + "\n")
-
-
-def predict_batch(
-    texts: list[str],
-    model,
-    tokenizer,
-    device: str,
-    max_length: int = 512,
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Predict on a batch of texts.
-    Returns (predicted_labels, probabilities).
-    """
-    inputs = tokenizer(
-        texts,
-        padding=True,
-        truncation=True,
-        max_length=max_length,
-        return_tensors="pt",
-    ).to(device)
-
-    with torch.no_grad():
-        outputs = model(**inputs)
-        probs = torch.softmax(outputs.logits, dim=-1).cpu().numpy()
-        preds = np.argmax(probs, axis=-1)
-
-    return preds, probs
-
-
-def run_inference(
-    data: list[dict],
-    model,
-    tokenizer,
-    device: str,
-    text_field: str,
-    batch_size: int = 32,
-    max_length: int = 512,
-) -> list[dict]:
-    """
-    Run inference on all data, adding predictions and probabilities.
-    """
-    results = []
-
-    for i in tqdm(range(0, len(data), batch_size), desc="Predicting"):
-        batch = data[i : i + batch_size]
-        texts = [item[text_field] for item in batch]
-
-        preds, probs = predict_batch(texts, model, tokenizer, device, max_length)
-
-        for j, item in enumerate(batch):
-            result = item.copy()
-            result["predicted_label"] = int(preds[j])
-            result["confidence"] = float(probs[j].max())
-            result["prob_class_0"] = float(probs[j][0])
-            result["prob_class_1"] = float(probs[j][1])
-            results.append(result)
-
-    return results
+def get_label_names(data: list[dict]) -> list[str]:
+    """Infer label names from prob_* keys."""
+    sample = data[0]
+    label_names = []
+    for key in sample.keys():
+        if key.startswith("prob_"):
+            label_names.append(key[5:])  # Remove "prob_" prefix
+    return sorted(label_names)
 
 
 def analyze_confidence_distribution(
     results: list[dict],
     label_names: list[str],
     output_dir: str,
+    text_field: str = "document",
 ):
     """
     Analyze and visualize confidence distributions.
@@ -119,12 +58,20 @@ def analyze_confidence_distribution(
     print(f"  Max:    {confidences.max():.4f}")
     print(f"  Median: {np.median(confidences):.4f}")
 
+    # Percentiles
+    print(f"\nConfidence percentiles:")
+    for p in [10, 25, 50, 75, 90, 95, 99]:
+        print(f"  {p}th: {np.percentile(confidences, p):.4f}")
+
     # Prediction distribution
     print(f"\nPrediction distribution:")
     for i, name in enumerate(label_names):
         count = (predictions == i).sum()
         pct = count / len(predictions) * 100
-        print(f"  {name}: {count} ({pct:.1f}%)")
+        mean_conf = (
+            confidences[predictions == i].mean() if (predictions == i).any() else 0
+        )
+        print(f"  {name}: {count} ({pct:.1f}%) | mean confidence: {mean_conf:.4f}")
 
     # Confidence thresholds analysis
     print(f"\nThreshold analysis (documents retained):")
@@ -139,7 +86,8 @@ def analyze_confidence_distribution(
         # Class distribution among high-confidence predictions
         high_conf_preds = predictions[above]
         class_dist = {
-            name: (high_conf_preds == i).sum() for i, name in enumerate(label_names)
+            name: int((high_conf_preds == i).sum())
+            for i, name in enumerate(label_names)
         }
 
         print(f"  >= {thresh:.2f}: {n_above:>6} ({pct_above:>5.1f}%) | {class_dist}")
@@ -148,7 +96,7 @@ def analyze_confidence_distribution(
             {
                 "threshold": thresh,
                 "n_documents": int(n_above),
-                "pct_documents": pct_above,
+                "pct_documents": float(pct_above),
                 "class_distribution": class_dist,
             }
         )
@@ -171,7 +119,8 @@ def analyze_confidence_distribution(
     # Plot 2: Confidence by predicted class
     for i, name in enumerate(label_names):
         mask = predictions == i
-        axes[1].hist(confidences[mask], bins=50, alpha=0.5, label=name)
+        if mask.any():
+            axes[1].hist(confidences[mask], bins=50, alpha=0.5, label=name)
     axes[1].set_xlabel("Confidence")
     axes[1].set_ylabel("Count")
     axes[1].set_title("Confidence by Predicted Class")
@@ -206,96 +155,77 @@ def analyze_confidence_distribution(
 
     print("\n--- TOP 5 HIGHEST CONFIDENCE ---")
     for r in sorted_results[:5]:
+        text = r.get(text_field, "NO TEXT FIELD")
         print(
             f"\nConfidence: {r['confidence']:.4f} | Predicted: {label_names[r['predicted_label']]}"
         )
-        print(f"Text: {r['document'][:300]}...")
+        print(f"Text: {text[:300]}...")
 
     print("\n--- 5 NEAR 0.5 CONFIDENCE (UNCERTAIN) ---")
     mid_conf = sorted(results, key=lambda x: abs(x["confidence"] - 0.5))[:5]
     for r in mid_conf:
+        text = r.get(text_field, "NO TEXT FIELD")
         print(
             f"\nConfidence: {r['confidence']:.4f} | Predicted: {label_names[r['predicted_label']]}"
         )
-        print(f"Text: {r['document'][:300]}...")
+        print(f"Text: {text[:300]}...")
+
+    # Save samples for manual inspection
+    samples = {
+        "highest_confidence": sorted_results[:20],
+        "lowest_confidence": sorted_results[-20:],
+        "near_threshold_0.5": sorted(results, key=lambda x: abs(x["confidence"] - 0.5))[
+            :20
+        ],
+        "near_threshold_0.9": sorted(results, key=lambda x: abs(x["confidence"] - 0.9))[
+            :20
+        ],
+    }
+
+    with open(output_dir / "sample_documents.json", "w") as f:
+        json.dump(samples, f, indent=2)
+
+    print(f"\nSample documents saved to {output_dir / 'sample_documents.json'}")
 
     return threshold_stats
 
 
 def main(args):
-    # Load model config to get label names
-    config_path = Path(args.model_path) / "training_config.yaml"
-    if config_path.exists():
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
-        label_names = config["data"]["label_names"]
-        max_length = config["model"].get("max_length", 512)
-    else:
-        print("Warning: No training_config.yaml found, using defaults")
-        label_names = ["negative", "positive"]
-        max_length = 512
+    print(f"Loading predictions from {args.predictions_path}")
+    results = load_jsonl(args.predictions_path)
+    print(f"Loaded {len(results)} predictions")
 
-    print(f"Label names: {label_names}")
+    # Infer label names from data
+    label_names = get_label_names(results)
+    print(f"Detected labels: {label_names}")
 
-    # Load model and tokenizer
-    print(f"Loading model from {args.model_path}")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using device: {device}")
-
-    tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-    model = AutoModelForSequenceClassification.from_pretrained(args.model_path)
-    model.to(device)
-    model.eval()
-
-    # Load data
-    print(f"Loading data from {args.data_path}")
-    data = load_jsonl(args.data_path)
-    print(f"Loaded {len(data)} documents")
-
-    # Run inference
-    results = run_inference(
-        data=data,
-        model=model,
-        tokenizer=tokenizer,
-        device=device,
+    analyze_confidence_distribution(
+        results=results,
+        label_names=label_names,
+        output_dir=args.output_dir,
         text_field=args.text_field,
-        batch_size=args.batch_size,
-        max_length=max_length,
     )
-
-    # Save predictions
-    output_path = Path(args.output_dir) / "predictions.jsonl"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    save_jsonl(results, output_path)
-    print(f"\nPredictions saved to {output_path}")
-
-    # Analyze
-    analyze_confidence_distribution(results, label_names, args.output_dir)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run inference and analyze confidence")
+    parser = argparse.ArgumentParser(
+        description="Analyze prediction confidence distribution"
+    )
 
     parser.add_argument(
-        "--model_path", type=str, required=True, help="Path to trained model directory"
-    )
-    parser.add_argument(
-        "--data_path", type=str, required=True, help="Path to JSONL data to predict on"
-    )
-    parser.add_argument(
-        "--output_dir",
+        "--predictions_path",
         type=str,
         required=True,
-        help="Directory for outputs (predictions, plots)",
+        help="Path to predictions JSONL from predict.py",
+    )
+    parser.add_argument(
+        "--output_dir", type=str, required=True, help="Directory for analysis outputs"
     )
     parser.add_argument(
         "--text_field",
         type=str,
         default="document",
-        help="Key containing text in JSONL",
-    )
-    parser.add_argument(
-        "--batch_size", type=int, default=32, help="Batch size for inference"
+        help="Key containing text in JSONL (for sampling)",
     )
 
     args = parser.parse_args()
