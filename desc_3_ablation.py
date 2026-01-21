@@ -5,6 +5,7 @@ Tests how many descriptors are needed for good retrieval.
 
 import argparse
 import json
+import warnings
 from pathlib import Path
 
 import joblib
@@ -12,6 +13,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from sklearn.metrics import average_precision_score, roc_auc_score
+
+# Suppress sklearn warning about unknown classes in MultiLabelBinarizer
+warnings.filterwarnings("ignore", message="unknown class.*")
 
 
 def load_jsonl(path: str) -> list[dict]:
