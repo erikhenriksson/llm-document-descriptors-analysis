@@ -1,0 +1,17 @@
+name: imdb_descriptors
+
+data:
+  path: data/descriptors_imdb_harmonized_labelled.jsonl
+  descriptor_field: harmonized_descriptors
+  label_field: label
+  label_names:
+    - negative
+    - positive
+  test_size: 0.1
+  dev_size: 0.1
+
+training:
+  output_dir: ./models/imdb_descriptors
+  C: 1.0
+  max_iter: 1000
+  seed: 42
