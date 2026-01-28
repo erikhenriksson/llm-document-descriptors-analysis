@@ -22,7 +22,7 @@ SEED = 42
 N_FINEWEB_USED_IN_TRAINING = 11100
 
 # K values to test
-TOP_K_VALUES = [5, 10, 15, 20, 30, 50, 75, 100, 150, 200]
+TOP_K_VALUES = [5, 10, 15, 20, 30, 50, 75, 100, 150, 200, 300, 500]
 
 random.seed(SEED)
 
@@ -159,7 +159,7 @@ print("=" * 60)
 print("STEP 5: Match count distribution (K=20)")
 print("=" * 60)
 
-k = 20
+k = 500
 top_descriptors = set(idx_to_desc[sorted_indices[i]] for i in range(k))
 
 match_counts_reviews = []
