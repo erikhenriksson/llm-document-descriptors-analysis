@@ -3,7 +3,7 @@
 # Benchmark dataset
 benchmark:
   path: "data/descriptors_ag_news_harmonized_labelled.jsonl"  # Path to benchmark JSONL file
-  positive_labels: [4]  # Label(s) to treat as positive class (e.g., [4] for science news, or [1,2,3] for all news)
+  positive_labels: [3]  # Label(s) to treat as positive class (e.g., [4] for science news, or [1,2,3] for all news)
 
 # FineWeb dataset
 fineweb:
