@@ -120,9 +120,11 @@ def main():
 
     # Initialize tokenizer and model
     print(f"Loading model: {config['training']['model_name']}")
-    tokenizer = AutoTokenizer.from_pretrained(config["training"]["model_name"])
+    tokenizer = AutoTokenizer.from_pretrained(
+        config["training"]["model_name"], trust_remote_code=True
+    )
     model = AutoModelForSequenceClassification.from_pretrained(
-        config["training"]["model_name"], num_labels=2
+        config["training"]["model_name"], num_labels=2, trust_remote_code=True
     )
 
     # Tokenize datasets
