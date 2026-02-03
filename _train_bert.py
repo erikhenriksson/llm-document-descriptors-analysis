@@ -3,6 +3,7 @@ Simple BERT classifier for document classification.
 Trains on benchmark positive class + random FineWeb negative samples.
 """
 
+import argparse
 import json
 import random
 from pathlib import Path
@@ -90,8 +91,18 @@ def compute_metrics(eval_pred):
 
 
 def main():
+    # Parse arguments
+    parser = argparse.ArgumentParser(description="Train BERT classifier")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="config.yaml",
+        help="Path to config file (default: config.yaml)",
+    )
+    args = parser.parse_args()
+
     # Load configuration
-    with open("config.yaml", "r") as f:
+    with open(args.config, "r") as f:
         config = yaml.safe_load(f)
 
     # Set random seed
