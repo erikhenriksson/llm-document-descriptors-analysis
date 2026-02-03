@@ -147,7 +147,7 @@ def main():
         num_train_epochs=config["training"]["epochs"],
         per_device_train_batch_size=config["training"]["batch_size"],
         per_device_eval_batch_size=config["training"]["batch_size"],
-        learning_rate=config["training"]["learning_rate"],
+        learning_rate=float(config["training"]["learning_rate"]),
         eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,

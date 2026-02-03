@@ -53,6 +53,7 @@ def main():
         device=0 if __import__("torch").cuda.is_available() else -1,
         truncation=True,
         max_length=config["training"]["max_length"],
+        trust_remote_code=True,
     )
 
     # Generate predictions in batches
