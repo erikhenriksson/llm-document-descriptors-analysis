@@ -21,6 +21,6 @@ training:
 
 # Output paths
 output:
-  model_dir: "models"  # Where to save trained models
-  predictions_dir: "predictions"  # Where to save predictions
-  logs_dir: "logs"  # Where to save logs
+  model_dir: "models/ag_4"  # Where to save trained models
+  predictions_dir: "predictions/ag_4"  # Where to save predictions
+  logs_dir: "logs/ag_4"  # Where to save logs
