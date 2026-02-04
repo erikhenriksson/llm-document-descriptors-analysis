@@ -5,6 +5,7 @@ Train logistic regression on descriptors and evaluate retrieval performance.
 import argparse
 import json
 import random
+import warnings
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -20,6 +21,9 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
+
+# Suppress sklearn warnings about unknown features
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 
 
 def load_jsonl(path):
@@ -241,8 +245,17 @@ def main():
         json.dump(
             {
                 "average_precision": float(ap),
-                "best_f1_threshold": best_result,
-                "threshold_results": results,
+                "best_f1_threshold": {
+                    k: float(v) if isinstance(v, (np.floating, np.integer)) else v
+                    for k, v in best_result.items()
+                },
+                "threshold_results": [
+                    {
+                        k: float(v) if isinstance(v, (np.floating, np.integer)) else v
+                        for k, v in r.items()
+                    }
+                    for r in results
+                ],
             },
             f,
             indent=2,
