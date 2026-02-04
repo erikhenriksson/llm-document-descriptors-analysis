@@ -1,0 +1,26 @@
+# Configuration for BERT classifier training
+
+# Benchmark dataset
+benchmark:
+  path: "data/descriptors_ag_news_harmonized_labelled.jsonl"  # Path to benchmark JSONL file
+  positive_labels: [0,1,2,3]  # Label(s) to treat as positive class (e.g., [4] for science news, or [1,2,3] for all news)
+
+# FineWeb dataset
+fineweb:
+  path: "data/descriptors_fineweb-edu_harmonized_labelled.jsonl"  # Path to FineWeb JSONL file
+
+# Training parameters
+training:
+  samples_per_class: 5000  # Number of samples per class (positive and negative)
+  model_name: "chandar-lab/NeoBERT"  # Pretrained model to use
+  batch_size: 16
+  learning_rate: 2e-5
+  epochs: 3
+  max_length: 512  # Maximum token length for documents
+  test_split: 0.1  # Fraction of training data to use for validation
+
+# Output paths
+output:
+  model_dir: "models/ag_4"  # Where to save trained models
+  predictions_dir: "predictions/ag_4"  # Where to save predictions
+  logs_dir: "logs/ag_4"  # Where to save logs
